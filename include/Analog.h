@@ -10,7 +10,7 @@ namespace Analog
 	uint16_t OnMuxRequest(uint8_t address);
 	void OnMuxResponse(uint8_t address, uint16_t value);
 	
-	EasyPinA adc_pin(&hadc1, GPIOB, GPIO_PIN_1, ADC_CHANNEL_9, ADC_SAMPLETIME_8CYCLES_5);
+	EasyPinA adc_pin(&hadc1, GPIOB, GPIO_PIN_1, ADC_CHANNEL_5, ADC_SAMPLETIME_8CYCLES_5);
 	volt_calc_t VoltCalcParams = {((1 << 12) - 1), 3324, 82000, 10000, 17};
 	
 	AnalogMux<0> mux( OnMuxRequest, OnMuxResponse
@@ -63,8 +63,8 @@ namespace Analog
 			if(++adc_calibration >= 60)
 			{
 				adc_calibration = 0;
-
-				adc_pin.Calibration();
+				// Не нужно, потому что выполняется в другом месте.
+				//adc_pin.Calibration();
 			}
 		}
 		
