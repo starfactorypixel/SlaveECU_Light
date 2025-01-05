@@ -67,7 +67,7 @@ static void MX_ADC1_Init(void);
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hcan, uint32_t itFlags)
 {
-	if(itFlags & FDCAN_IT_RX_FIFO0_NEW_MESSAGE == 0) return;
+	if((itFlags & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == 0) return;
 	
 	FDCAN_RxHeaderTypeDef RxHeader = {};
 	uint8_t RxData[8] = {};
