@@ -8,6 +8,7 @@
 #include "CANLogic.h"
 #include "OutputLogic.h"
 #include <Analog.h>
+#include "WS2812Logic.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -180,6 +181,7 @@ int main(void)
 	CANLib::Setup();
 	Analog::Setup();
 	Outputs::Setup();
+	WS2812::Setup();
 	
 	uint32_t current_time = HAL_GetTick();
 	while(1)
@@ -190,6 +192,7 @@ int main(void)
 		CANLib::Loop(current_time);
 		Analog::Loop(current_time);
 		Outputs::Loop(current_time);
+		WS2812::Loop(current_time);
 
 		static uint32_t qqq = 0;
 		if(current_time - qqq > 5)

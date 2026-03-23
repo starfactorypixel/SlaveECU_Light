@@ -6,7 +6,7 @@ extern ADC_HandleTypeDef hadc1;
 namespace Outputs
 {
 	/* Настройки */
-	static constexpr uint8_t CFG_PortCount = 7;			// Кол-во портов управления.
+	static constexpr uint8_t CFG_PortCount = 6;			// Кол-во портов управления.
 	static constexpr uint32_t CFG_RefVoltage = 3300000;	// Опорное напряжение, микровольты.
 	static constexpr uint8_t CFG_INA180_Gain = 50;		// Усиление микросхемы INA180.
 	static constexpr uint8_t CFG_ShuntResistance = 5;	// Сопротивление шунта, миллиомы.
@@ -34,13 +34,12 @@ namespace Outputs
 	
 	inline void Setup()
 	{
-		outObj.AddPort( {GPIOD, GPIO_PIN_0}, {GPIOA, GPIO_PIN_1, ADC_CHANNEL_17}, 5000 );	// Выход 1, Габариты
-		outObj.AddPort( {GPIOD, GPIO_PIN_1}, {GPIOA, GPIO_PIN_2, ADC_CHANNEL_14}, 5000 );	// Выход 2, Ближний свет или Стоп сигнал
-		outObj.AddPort( {GPIOD, GPIO_PIN_3}, {GPIOA, GPIO_PIN_3, ADC_CHANNEL_15}, 5000 );	// Выход 3, Дальний свет или Задний ход
-		outObj.AddPort( {GPIOD, GPIO_PIN_4}, {GPIOA, GPIO_PIN_4, ADC_CHANNEL_18}, 5000 );	// Выход 4, Левый поворотник
-		outObj.AddPort( {GPIOD, GPIO_PIN_5}, {GPIOA, GPIO_PIN_5, ADC_CHANNEL_19}, 5000 );	// Выход 5, Правый поворотник
-		outObj.AddPort( {GPIOD, GPIO_PIN_6}, {GPIOA, GPIO_PIN_6, ADC_CHANNEL_3}, 5000 );	// Выход 6, Доп. свет
-		outObj.AddPort( {GPIOD, GPIO_PIN_7}, {GPIOA, GPIO_PIN_7, ADC_CHANNEL_7}, 20000 );	// Выход HiPower-1
+		outObj.AddPort( {GPIOC, GPIO_PIN_4}, {GPIOA, GPIO_PIN_1, ADC_CHANNEL_17}, 5000 );	// Выход 1, Габариты
+		outObj.AddPort( {GPIOC, GPIO_PIN_5}, {GPIOA, GPIO_PIN_2, ADC_CHANNEL_14}, 5000 );	// Выход 2, Ближний свет или Стоп сигнал
+		outObj.AddPort( {GPIOB, GPIO_PIN_0}, {GPIOA, GPIO_PIN_3, ADC_CHANNEL_15}, 5000 );	// Выход 3, Дальний свет или Задний ход
+		outObj.AddPort( {GPIOB, GPIO_PIN_1}, {GPIOA, GPIO_PIN_4, ADC_CHANNEL_18}, 5000 );	// Выход 4, Левый поворотник
+		outObj.AddPort( {GPIOB, GPIO_PIN_2}, {GPIOA, GPIO_PIN_5, ADC_CHANNEL_19}, 5000 );	// Выход 5, Правый поворотник
+		outObj.AddPort( {GPIOE, GPIO_PIN_7}, {GPIOA, GPIO_PIN_6, ADC_CHANNEL_3}, 5000 );	// Выход 6, Доп. свет
 		
 		outObj.Init();
 
