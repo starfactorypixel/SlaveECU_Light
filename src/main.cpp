@@ -69,7 +69,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hcan, uint32_t itFlags)
 	
 	if( HAL_FDCAN_GetRxMessage(hcan, FDCAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK )
 	{
-		CANLib::can_manager.IncomingCANFrame(RxHeader.Identifier, RxData, (RxHeader.DataLength >> 16));
+		CANLib::can_manager.IncomingCANFrame(RxHeader.Identifier, RxData, RxHeader.DataLength);
 		
 		//DEBUG_LOG_TOPIC("RX", "OK\n");
 	}
