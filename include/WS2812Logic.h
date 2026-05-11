@@ -8,6 +8,10 @@ namespace WS2812
 	// Управление питами контроля DC-DC на 5 вольт (для ws2812 или hub75 панелей)
 	DrakePinD Dc1En({GPIOD, GPIO_PIN_0}, DrakePin::Output, DrakePin::Low);
 	DrakePinD Dc2En({GPIOD, GPIO_PIN_14}, DrakePin::Output, DrakePin::Low);
+
+	// Выходы на ws2812
+	// GPIOD, GPIO_PIN_12
+	// GPIOD, GPIO_PIN_13
 	
 	
 	inline void Setup()

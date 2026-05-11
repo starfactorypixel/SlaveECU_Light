@@ -1,5 +1,6 @@
 #pragma once
-#include  <PowerOut.h>
+#include <PowerOut.h>
+#include <DrakePinA.hpp>
 
 extern ADC_HandleTypeDef hadc1;
 
@@ -8,14 +9,16 @@ namespace Outputs
 	/* Настройки */
 	static constexpr uint8_t CFG_PortCount = 6;			// Кол-во портов управления.
 	static constexpr uint32_t CFG_RefVoltage = 3300000;	// Опорное напряжение, микровольты.
-	static constexpr uint8_t CFG_INA180_Gain = 50;		// Усиление микросхемы INA180.
-	static constexpr uint8_t CFG_ShuntResistance = 5;	// Сопротивление шунта, миллиомы.
+	static constexpr uint8_t CFG_INA180_Gain = 100;		// Усиление микросхемы INA180.
+	static constexpr uint8_t CFG_ShuntResistance = 2;	// Сопротивление шунта, миллиомы.
 
 	static constexpr uint16_t CFG_TurnTimeOn = 550;
 	static constexpr uint16_t CFG_TurnTimeOf = 400;
 	/* */
 	
 	PowerOut<CFG_PortCount> outObj(&hadc1, CFG_RefVoltage, CFG_INA180_Gain, CFG_ShuntResistance);
+
+	DrakePinA ntc_in({&hadc1, GPIOC, GPIO_PIN_0, ADC_CHANNEL_10}, ADC_SAMPLETIME_8CYCLES_5);
 
 
 	struct obj_t
@@ -39,7 +42,7 @@ namespace Outputs
 		outObj.AddPort( {GPIOB, GPIO_PIN_0}, {GPIOA, GPIO_PIN_3, ADC_CHANNEL_15}, 5000 );	// Выход 3, Дальний свет или Задний ход
 		outObj.AddPort( {GPIOB, GPIO_PIN_1}, {GPIOA, GPIO_PIN_4, ADC_CHANNEL_18}, 5000 );	// Выход 4, Левый поворотник
 		outObj.AddPort( {GPIOB, GPIO_PIN_2}, {GPIOA, GPIO_PIN_5, ADC_CHANNEL_19}, 5000 );	// Выход 5, Правый поворотник
-		outObj.AddPort( {GPIOE, GPIO_PIN_7}, {GPIOA, GPIO_PIN_6, ADC_CHANNEL_3}, 5000 );	// Выход 6, Доп. свет
+		outObj.AddPort( {GPIOE, GPIO_PIN_7}, {GPIOA, GPIO_PIN_6, ADC_CHANNEL_3},  5000 );	// Выход 6, Доп. свет
 		
 		outObj.Init();
 
@@ -51,6 +54,8 @@ namespace Outputs
 
 		//outObj.SetOn(6, 250, 500);
 		//outObj.SetOn(5, 1000, 100);
+
+		ntc_in.Init();
 
 		CANLib::obj_side_beam.RegisterFunctionSet([](can_frame_t &can_frame, can_error_t &error) -> can_result_t
 		{
