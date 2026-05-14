@@ -2,7 +2,7 @@
 #include <DrakePinD.hpp>
 #include <CANLibrary.h>
 
-extern FDCAN_HandleTypeDef hcan;
+extern FDCAN_HandleTypeDef hfdcan1;
 extern void HAL_CAN_Send(uint16_t id, uint8_t *data_raw, uint8_t length_raw);
 
 namespace CANLib
@@ -32,8 +32,8 @@ namespace CANLib
 	
 	void CAN_Enable()
 	{
-		HAL_FDCAN_ActivateNotification(&hcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE | FDCAN_IT_BUS_OFF | FDCAN_IT_ERROR_PASSIVE | FDCAN_IT_ERROR_WARNING, 0);
-		HAL_FDCAN_Start(&hcan);
+		HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE | FDCAN_IT_BUS_OFF | FDCAN_IT_ERROR_PASSIVE | FDCAN_IT_ERROR_WARNING, 0);
+		HAL_FDCAN_Start(&hfdcan1);
 		
 		can_rs.Off();
 		
@@ -42,9 +42,9 @@ namespace CANLib
 	
 	void CAN_Disable()
 	{
-		//HAL_FDCAN_DeactivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE);
-		HAL_FDCAN_DeactivateNotification(&hcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE | FDCAN_IT_BUS_OFF | FDCAN_IT_ERROR_PASSIVE | FDCAN_IT_ERROR_WARNING);
-		HAL_FDCAN_Stop(&hcan);
+		//HAL_FDCAN_DeactivateNotification(&hfdcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE);
+		HAL_FDCAN_DeactivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE | FDCAN_IT_BUS_OFF | FDCAN_IT_ERROR_PASSIVE | FDCAN_IT_ERROR_WARNING);
+		HAL_FDCAN_Stop(&hfdcan1);
 		
 		can_rs.On();
 		
