@@ -88,6 +88,146 @@ void HAL_CAN_Send(uint16_t id, uint8_t *data, uint8_t length)
 }
 
 
+
+
+
+FATFS SDFatFs;
+
+void InitFlash()
+{
+	disk_initialize(SDFatFs.drv);
+
+    FRESULT mount_res = f_mount(&SDFatFs, "", 1);
+    if (mount_res != FR_OK)
+    {
+        Leds::obj.SetOn(Leds::LED_RED, 250, 250);
+
+        Logger.PrintTopic("SD")
+              .Printf("Init error, code: %d", mount_res)
+              .PrintNewLine();
+
+        return;
+    }
+
+    FILINFO fileInfo;
+
+    // Стек директорий для обхода
+    static const uint16_t MAX_DIR_DEPTH = 16;
+    DIR dirStack[MAX_DIR_DEPTH];
+
+    // Пути директорий
+    char pathStack[MAX_DIR_DEPTH][256];
+
+    uint16_t level = 0;
+
+    strcpy(pathStack[0], "/");
+
+    if (f_opendir(&dirStack[0], pathStack[0]) != FR_OK)
+    {
+        DEBUG_LOG_TOPIC("SD", "Cannot open root dir");
+        DEBUG_LOG_NEW_LINE();
+        return;
+    }
+
+    while (1)
+    {
+        FRESULT result = f_readdir(&dirStack[level], &fileInfo);
+
+        if (result != FR_OK)
+        {
+            DEBUG_LOG_TOPIC("SD", "Read dir error");
+            DEBUG_LOG_NEW_LINE();
+            break;
+        }
+
+        // Конец текущей директории
+        if (fileInfo.fname[0] == 0)
+        {
+            f_closedir(&dirStack[level]);
+
+            if (level == 0)
+            {
+                // Всё обошли
+                break;
+            }
+
+            level--;
+            continue;
+        }
+
+        char fullPath[256];
+
+        if (strcmp(pathStack[level], "/") == 0)
+        {
+            snprintf(fullPath,
+                     sizeof(fullPath),
+                     "/%s",
+                     fileInfo.fname);
+        }
+        else
+        {
+            snprintf(fullPath,
+                     sizeof(fullPath),
+                     "%s/%s",
+                     pathStack[level],
+                     fileInfo.fname);
+        }
+
+        DEBUG_LOG_TOPIC(
+            "SD",
+            "%s%s",
+            fullPath,
+            (fileInfo.fattrib & AM_DIR) ? "   [DIR]" : "");
+
+        DEBUG_LOG_NEW_LINE();
+
+        // Если папка — заходим внутрь
+        if ((fileInfo.fattrib & AM_DIR) &&
+            strcmp(fileInfo.fname, ".") != 0 &&
+            strcmp(fileInfo.fname, "..") != 0)
+        {
+            if ((level + 1) >= MAX_DIR_DEPTH)
+            {
+                DEBUG_LOG_TOPIC("SD", "Max dir depth reached");
+                DEBUG_LOG_NEW_LINE();
+                continue;
+            }
+
+            level++;
+
+            strncpy(pathStack[level],
+                    fullPath,
+                    sizeof(pathStack[level]) - 1);
+
+            pathStack[level][sizeof(pathStack[level]) - 1] = 0;
+
+            result = f_opendir(&dirStack[level], pathStack[level]);
+
+            if (result != FR_OK)
+            {
+                DEBUG_LOG_TOPIC(
+                    "SD",
+                    "Cannot open dir: %s",
+                    pathStack[level]);
+
+                DEBUG_LOG_NEW_LINE();
+
+                level--;
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 int main(void)
 {
 	MPU_Config();
@@ -115,6 +255,8 @@ int main(void)
 	Analog::Setup();
 	Outputs::Setup();
 	WS2812::Setup();
+
+	InitFlash();
 	
 	uint32_t current_time = HAL_GetTick();
 	while(1)
@@ -309,7 +451,7 @@ static void MX_SDMMC1_SD_Init(void)
 	hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
 	hsd1.Init.BusWide = SDMMC_BUS_WIDE_4B;
 	hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-	hsd1.Init.ClockDiv = 0;
+	hsd1.Init.ClockDiv = 4;											// (160Mhz clock / (ClockDiv * 2))
 	if(HAL_SD_Init(&hsd1) != HAL_OK)
 	{
 		//Error_Handler();
@@ -325,7 +467,7 @@ static void MX_SPI1_Init(void)
 	hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
 	hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
 	hspi1.Init.NSS = SPI_NSS_SOFT;
-	hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+	hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;		// 160Mhz clock
 	hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
 	hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
 	hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

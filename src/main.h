@@ -10,6 +10,7 @@ extern "C" {
 void Error_Handler(void);
 
 #define hDebugUart huart1
+#define hHub75Bus hspi1
 
 #ifdef __cplusplus
 }
