@@ -254,9 +254,11 @@ int main(void)
 	CANLib::Setup();
 	Analog::Setup();
 	Outputs::Setup();
-	WS2812::Setup();
 
 	InitFlash();
+	WS2812::Setup();
+
+	
 	
 	uint32_t current_time = HAL_GetTick();
 	while(1)

@@ -204,15 +204,19 @@ namespace Outputs
 			outObj.SetOff(test_iter++);
 			if(test_iter == 9) test_iter = 1;
 			outObj.SetOn(test_iter);
-*/			
+*/
+
+/*
 			Logger.PrintTopic("POUT");
 			for(uint8_t i = 1; i < CFG_PortCount+1; ++i)
 			{
 				Logger.Printf("%05d;", outObj.GetCurrent(i));
 			}
 			Logger.PrintNewLine();
+*/
 		}
-		
+
+	
 		current_time = HAL_GetTick();
 		
 		return;
