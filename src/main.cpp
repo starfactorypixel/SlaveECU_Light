@@ -231,8 +231,8 @@ void InitFlash()
 int main(void)
 {
 	MPU_Config();
-	SCB_EnableICache();
-	SCB_EnableDCache();
+	//SCB_EnableICache();
+	//SCB_EnableDCache();
 	HAL_Init();
 	
 	SystemClock_Config();
