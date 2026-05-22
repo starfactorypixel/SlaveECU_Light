@@ -284,12 +284,12 @@ void CreateDMABuffer2(uint8_t mode)
 		frame_buffer_idx = 0;
 		CreateDMABuffer(0);
 		
-		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+		//HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);												//// нужно?
 		HAL_StatusTypeDef stat = HAL_DMA_Start_IT(&hdma_tim4_ch1, (uint32_t)dma_buffer, (uint32_t)&TIM4->CCR1, dma_buffer_len);
 		
 		if(stat == HAL_OK)
 		{
-			__HAL_TIM_ENABLE_DMA(&htim4, TIM_DMA_UPDATE);
+			__HAL_TIM_ENABLE_DMA(&htim4, TIM_DMA_CC1);
 		}
 	}
 
@@ -297,7 +297,7 @@ void CreateDMABuffer2(uint8_t mode)
 	{
 		//HAL_TIM_PWM_Stop_DMA(&htim4, TIM_CHANNEL_1);
 
-		__HAL_TIM_DISABLE_DMA(&htim4, TIM_DMA_UPDATE);
+		__HAL_TIM_DISABLE_DMA(&htim4, TIM_DMA_CC1);
 		HAL_DMA_Abort_IT(&hdma_tim4_ch1);
 
 		frame_buffer_idx = 0;
@@ -317,6 +317,12 @@ void CreateDMABuffer2(uint8_t mode)
 		HAL_DMA_RegisterCallback(&hdma_tim4_ch1, HAL_DMA_XFER_CPLT_CB_ID, My_FullCpltCallback);
 		HAL_DMA_RegisterCallback(&hdma_tim4_ch1, HAL_DMA_XFER_HALFCPLT_CB_ID, My_HalfCpltCallback);
 		HAL_DMA_RegisterCallback(&hdma_tim4_ch1, HAL_DMA_XFER_ERROR_CB_ID, TIM_DMAError);
+		HAL_DMA_RegisterCallback(&hdma_tim4_ch2, HAL_DMA_XFER_CPLT_CB_ID, My_FullCpltCallback);
+		HAL_DMA_RegisterCallback(&hdma_tim4_ch2, HAL_DMA_XFER_HALFCPLT_CB_ID, My_HalfCpltCallback);
+		HAL_DMA_RegisterCallback(&hdma_tim4_ch2, HAL_DMA_XFER_ERROR_CB_ID, TIM_DMAError);
+
+		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);												//// нужно?
+		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);												//// нужно?
 
 
 
