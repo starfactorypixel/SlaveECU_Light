@@ -9,8 +9,8 @@ DMA_HandleTypeDef hdma_tim4_ch2;
 
 namespace WS2812WH
 {
-	volatile uint8_t PWM_HI;			// PWM Code HI Log.1 period
-	volatile uint8_t PWM_LO;			// PWM Code LO Log.1 period
+	volatile uint16_t PWM_HI;
+	volatile uint16_t PWM_LO;
 	
 	static void My_TIM_PWM_MspInit(TIM_HandleTypeDef* htim_pwm)
 	{
@@ -19,7 +19,7 @@ namespace WS2812WH
 			__HAL_RCC_TIM4_CLK_ENABLE();
 			
 			hdma_tim4_ch1.Instance = DMA1_Stream0;
-			hdma_tim4_ch1.Init.Request = DMA_REQUEST_TIM4_CH1;			//
+			hdma_tim4_ch1.Init.Request = DMA_REQUEST_TIM4_CH1;
 			hdma_tim4_ch1.Init.Direction = DMA_MEMORY_TO_PERIPH;
 			hdma_tim4_ch1.Init.PeriphInc = DMA_PINC_DISABLE;
 			hdma_tim4_ch1.Init.MemInc = DMA_MINC_ENABLE;
@@ -32,10 +32,10 @@ namespace WS2812WH
 			{
 				Error_Handler();
 			}
-			__HAL_LINKDMA(htim_pwm,hdma[TIM_DMA_ID_CC1],hdma_tim4_ch1);	//
+			__HAL_LINKDMA(htim_pwm, hdma[TIM_DMA_ID_CC1], hdma_tim4_ch1);
 
 			hdma_tim4_ch2.Instance = DMA1_Stream1;
-			hdma_tim4_ch2.Init.Request = DMA_REQUEST_TIM4_CH2;		//
+			hdma_tim4_ch2.Init.Request = DMA_REQUEST_TIM4_CH2;
 			hdma_tim4_ch2.Init.Direction = DMA_MEMORY_TO_PERIPH;
 			hdma_tim4_ch2.Init.PeriphInc = DMA_PINC_DISABLE;
 			hdma_tim4_ch2.Init.MemInc = DMA_MINC_ENABLE;
@@ -48,7 +48,7 @@ namespace WS2812WH
 			{
 				Error_Handler();
 			}
-			__HAL_LINKDMA(htim_pwm,hdma[TIM_DMA_ID_CC2],hdma_tim4_ch2);	//
+			__HAL_LINKDMA(htim_pwm, hdma[TIM_DMA_ID_CC2], hdma_tim4_ch2);
 		}
 	}
 	

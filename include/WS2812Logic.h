@@ -133,93 +133,43 @@ static const uint16_t dma_buffer_len = sizeof(dma_buffer) / sizeof(dma_buffer[0]
 
 
 
-void CreateDMABuffer(uint8_t mode)
-{
-	using namespace WS2812WH;
-
-	if(frame_buffer_idx >= frame_buffer_len) return;
-
-	//Leds::obj.SetOn(Leds::LED_WHITE);
-	
-	static uint16_t buff_copy_logic[3][2] = 
+	void CreateDMABuffer(uint8_t mode)
 	{
-		{0, dma_buffer_len}, 
-		{0, (dma_buffer_len / 2)}, 
-		{(dma_buffer_len / 2), dma_buffer_len}
-	};	
-	uint16_t start = buff_copy_logic[mode][0];
-	uint16_t end = buff_copy_logic[mode][1];
-	
-	//uint8_t *frame_ptr = &frame_buffer_ptr[frame_buffer_idx];
-	uint8_t byte, mask;
-	uint16_t index;
-	
-	for(uint16_t i = start; i < end; i += 8)
-	{
-		//byte = *frame_ptr++;
-		index = mapper_func(frame_buffer_idx++);
-		byte = frame_buffer_ptr[index];
-		mask = 0x80;
+		//Leds::obj.SetOn(Leds::LED_WHITE);
 		
-		for(uint8_t b = 0; b < 8; ++b)
+		static uint16_t buff_copy_logic[3][2] = 
 		{
-			dma_buffer[i + b] = (byte & mask) ? WS2812WH::PWM_HI : WS2812WH::PWM_LO;
-			mask >>= 1;
+			{0, dma_buffer_len}, 
+			{0, (dma_buffer_len / 2)}, 
+			{(dma_buffer_len / 2), dma_buffer_len}
+		};
+		const uint16_t start = buff_copy_logic[mode][0];
+		const uint16_t stop = buff_copy_logic[mode][1];
+		
+		uint16_t *p_buf = (uint16_t *)&dma_buffer[start];
+		const uint16_t *p_end = (uint16_t *)&dma_buffer[stop];
+		while(p_buf < p_end)
+		{
+			if(frame_buffer_idx >= frame_buffer_len) return;
+			
+			const uint16_t fb_idx = frame_buffer_idx++;
+			const uint16_t index = mapper_func(fb_idx);
+			const uint8_t byte = frame_buffer_ptr[index];
+			
+			p_buf[0] = (byte & 0x80) ? WS2812WH::PWM_HI : WS2812WH::PWM_LO;
+			p_buf[1] = (byte & 0x40) ? WS2812WH::PWM_HI : WS2812WH::PWM_LO;
+			p_buf[2] = (byte & 0x20) ? WS2812WH::PWM_HI : WS2812WH::PWM_LO;
+			p_buf[3] = (byte & 0x10) ? WS2812WH::PWM_HI : WS2812WH::PWM_LO;
+			p_buf[4] = (byte & 0x08) ? WS2812WH::PWM_HI : WS2812WH::PWM_LO;
+			p_buf[5] = (byte & 0x04) ? WS2812WH::PWM_HI : WS2812WH::PWM_LO;
+			p_buf[6] = (byte & 0x02) ? WS2812WH::PWM_HI : WS2812WH::PWM_LO;
+			p_buf[7] = (byte & 0x01) ? WS2812WH::PWM_HI : WS2812WH::PWM_LO;
+			p_buf += 8;
 		}
+		
+		//Leds::obj.SetOff(Leds::LED_WHITE);
 	}
-	//frame_buffer_idx += (end - start) / 8;
-	
-	//Leds::obj.SetOff(Leds::LED_WHITE);
-}
 
-void CreateDMABuffer2(uint8_t mode)
-{
-    using namespace WS2812WH;
-
-	if(frame_buffer_idx >= frame_buffer_len) return;
-
-	//DEBUG_LOG_TOPIC("IF", "%d >= %d\n", frame_buffer_idx, frame_buffer_len);
-
-    uint16_t start = 0;
-    uint16_t end = dma_buffer_len;
-
-    if(mode == 1)
-    {
-        end = dma_buffer_len / 2;
-    }
-    else if(mode == 2)
-    {
-        start = dma_buffer_len / 2;
-    }
-
-    uint16_t *buf = (uint16_t*)dma_buffer;
-
-    for(uint16_t i = start; (i + 7) < end; i += 8)
-    {
-		if(frame_buffer_idx >= frame_buffer_len) return;	// Обазательно
-
-        uint32_t fb_idx = frame_buffer_idx++;
-
-        uint16_t index = mapper_func(fb_idx);
-
-        uint8_t byte = frame_buffer_ptr[index];
-
-		if(((i + 7) >= 144))
-		{
-			//Leds::obj.SetOn(Leds::LED_RED);
-			DEBUG_LOG_TOPIC("", "%d, %d, %d\n", i, (i + 7), mode);
-		}
-
-        buf[i + 0] = (byte & 0x80) ? PWM_HI : PWM_LO;
-        buf[i + 1] = (byte & 0x40) ? PWM_HI : PWM_LO;
-        buf[i + 2] = (byte & 0x20) ? PWM_HI : PWM_LO;
-        buf[i + 3] = (byte & 0x10) ? PWM_HI : PWM_LO;
-        buf[i + 4] = (byte & 0x08) ? PWM_HI : PWM_LO;
-        buf[i + 5] = (byte & 0x04) ? PWM_HI : PWM_LO;
-        buf[i + 6] = (byte & 0x02) ? PWM_HI : PWM_LO;
-        buf[i + 7] = (byte & 0x01) ? PWM_HI : PWM_LO;
-    }
-}
 
 	void Stop();
 
