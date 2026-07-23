@@ -1,16 +1,17 @@
 #pragma once
+#include <AnalogRegular.h>
 #include <AnalogMux.h>
 #include <DrakePinA.hpp>
 #include <CUtils.h>
 
-extern ADC_HandleTypeDef hadc1;
+extern ADC_HandleTypeDef hadc2;
 
 namespace Analog
 {
 	uint16_t OnMuxRequest(uint8_t address);
 	void OnMuxResponse(uint8_t address, uint16_t value);
 	
-	DrakePinA adc_pin({&hadc1, GPIOC, GPIO_PIN_1, ADC_CHANNEL_11}, ADC_SAMPLETIME_8CYCLES_5);
+	DrakePinA adc_pin({&hadc2, GPIOC, GPIO_PIN_1, ADC_CHANNEL_11}, ADC_SAMPLETIME_8CYCLES_5);
 	DividerVoltageCalc VoltCalc(12, 3300, 69000, 10000);
 	
 	AnalogMux<0> mux( OnMuxRequest, OnMuxResponse
@@ -30,13 +31,17 @@ namespace Analog
 	
 	void OnMuxResponse(uint8_t address, uint16_t value)
 	{
-		if(address == 0)
+		if(address == 1)
 		{
 			uint16_t vin = VoltCalc.GetmV(value);
 			uint8_t *vin_bytes = (uint8_t *)&vin;
 			
 			CANLib::obj_block_health.SetValue(0, vin_bytes[0]);
 			CANLib::obj_block_health.SetValue(1, vin_bytes[1]);
+
+			//DEBUG_LOG_TOPIC("Vin", "    %04d\n", vin);
+			//DEBUG_LOG_TOPIC("DNA", "    %04d %04d %04d %04d %04d %04d\n", 
+			//	regular_buf[0], regular_buf[1], regular_buf[2], regular_buf[3], regular_buf[4], regular_buf[5]);
 		}
 		
 		return;
@@ -44,6 +49,8 @@ namespace Analog
 	
 	inline void Setup()
 	{
+		RegularSetup();
+
 		adc_pin.Init();
 		
 		return;

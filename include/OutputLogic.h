@@ -1,35 +1,59 @@
 #pragma once
-#include <PowerOut.h>
+#include <PowerOutV2.h>
+#include <DrakePinD.hpp>
 #include <DrakePinA.hpp>
+#include <CUtils.h>
 
-extern ADC_HandleTypeDef hadc1;
+extern ADC_HandleTypeDef hadc2;
 
 namespace Outputs
 {
-	/* Настройки */
-	static constexpr uint8_t CFG_PortCount = 6;			// Кол-во портов управления.
-	static constexpr uint32_t CFG_RefVoltage = 3300000;	// Опорное напряжение, микровольты.
-	static constexpr uint8_t CFG_INA180_Gain = 100;		// Усиление микросхемы INA180.
-	static constexpr uint8_t CFG_ShuntResistance = 2;	// Сопротивление шунта, миллиомы.
-
 	static constexpr uint16_t CFG_TurnTimeOn = 550;
 	static constexpr uint16_t CFG_TurnTimeOf = 400;
-	/* */
 	
-	PowerOut<CFG_PortCount> outObj(&hadc1, CFG_RefVoltage, CFG_INA180_Gain, CFG_ShuntResistance);
-
-	DrakePinA ntc_in({&hadc1, GPIOC, GPIO_PIN_0, ADC_CHANNEL_10}, ADC_SAMPLETIME_8CYCLES_5);
-
-
-	struct obj_t
+	void OnControl(uint8_t port, uint8_t id, uint8_t state);
+	uint16_t OnCurrentGet(uint8_t port, uint8_t id);
+	void OnCurrentLimit(uint8_t port, uint16_t current);
+	
+	DrakePinD pinsd[] = 
 	{
-		CANObjectInterface *obj;
+		{{GPIOC, GPIO_PIN_4}, DrakePin::Output, DrakePin::High},
+		{{GPIOC, GPIO_PIN_5}, DrakePin::Output, DrakePin::High},
+		{{GPIOB, GPIO_PIN_0}, DrakePin::Output, DrakePin::High},
+		{{GPIOB, GPIO_PIN_1}, DrakePin::Output, DrakePin::High},
+		{{GPIOB, GPIO_PIN_2}, DrakePin::Output, DrakePin::High},
+		{{GPIOE, GPIO_PIN_7}, DrakePin::Output, DrakePin::High}
+	};
+
+	PowerOutV2<8> ports(HAL_GetTick, OnControl, OnCurrentGet);
+	INACurrentCalc ina_calc(12, 3300, 2, 100);
+
+	DrakePinA ntc_in({&hadc2, GPIOC, GPIO_PIN_0, ADC_CHANNEL_10}, ADC_SAMPLETIME_8CYCLES_5);
+
+	enum port_t : uint8_t
+	{
+		PORT_NONE, 
+		PORT_1, PORT_2, PORT_3, PORT_4, PORT_5, PORT_6
 	};
 	
 	
-	void OnShortCircuit(uint8_t num, uint16_t current)
+	void OnControl(uint8_t port, uint8_t id, uint8_t state)
 	{
+		DrakePin::LevelD_t new_state = (state == PowerOutBase::STATE_ON) ? DrakePin::Low : DrakePin::High;
+		pinsd[id].Write(new_state);
+	}
+	
+	uint16_t OnCurrentGet(uint8_t port, uint8_t id)
+	{
+		uint16_t adc = Analog::GetRegularValue(id);
 
+		return ina_calc.Get_mA(adc);
+	}
+	
+	void OnCurrentLimit(uint8_t port, uint16_t current)
+	{
+		//CANLib::SoftEventOutputs(CANLib::EVENT_CURR_LIMIT, port, current);
+		//BlockInfoSender.SendErrorMsg(port, 10, current);
 	}
 
 
@@ -37,23 +61,27 @@ namespace Outputs
 	
 	inline void Setup()
 	{
-		outObj.AddPort( {GPIOC, GPIO_PIN_4}, {GPIOA, GPIO_PIN_1, ADC_CHANNEL_17}, 5000 );	// Выход 1, Габариты
-		outObj.AddPort( {GPIOC, GPIO_PIN_5}, {GPIOA, GPIO_PIN_2, ADC_CHANNEL_14}, 5000 );	// Выход 2, Ближний свет или Стоп сигнал
-		outObj.AddPort( {GPIOB, GPIO_PIN_0}, {GPIOA, GPIO_PIN_3, ADC_CHANNEL_15}, 5000 );	// Выход 3, Дальний свет или Задний ход
-		outObj.AddPort( {GPIOB, GPIO_PIN_1}, {GPIOA, GPIO_PIN_4, ADC_CHANNEL_18}, 5000 );	// Выход 4, Левый поворотник
-		outObj.AddPort( {GPIOB, GPIO_PIN_2}, {GPIOA, GPIO_PIN_5, ADC_CHANNEL_19}, 5000 );	// Выход 5, Правый поворотник
-		outObj.AddPort( {GPIOE, GPIO_PIN_7}, {GPIOA, GPIO_PIN_6, ADC_CHANNEL_3},  5000 );	// Выход 6, Доп. свет
-		
-		outObj.Init();
+		for(auto &pins : pinsd)
+		{
+			pins.Init();
+		}
+
+		ports.SetPort(PORT_1, 0, Analog::PORT_REG1, 1000);	// Выход 1, Габариты
+		ports.SetPort(PORT_2, 1, Analog::PORT_REG2, 1000);	// Выход 2, Ближний свет или Стоп сигнал
+		ports.SetPort(PORT_3, 2, Analog::PORT_REG3, 1000);	// Выход 3, Дальний свет или Задний ход
+		ports.SetPort(PORT_4, 3, Analog::PORT_REG4, 1000);	// Выход 4, Левый поворотник
+		ports.SetPort(PORT_5, 4, Analog::PORT_REG5, 1000);	// Выход 5, Правый поворотник
+		ports.SetPort(PORT_6, 5, Analog::PORT_REG6, 1000);	// Выход 6, Доп. свет
+		ports.Init();
 
 		//outObj.On(4);
 		//outObj.On(6);
 		//outObj.Off(1);
-		outObj.RegShortCircuitEvent(OnShortCircuit);
+		ports.SetCallbackCurrentLimit(OnCurrentLimit);
 		//outObj.Current(1);
 
-		//outObj.SetOn(6, 250, 500);
-		//outObj.SetOn(5, 1000, 100);
+		//ports.CtrlOn(6, 250, 500);
+		//ports.CtrlOn(5, 1000, 100);
 
 		ntc_in.Init();
 
@@ -62,12 +90,12 @@ namespace Outputs
 			uint8_t response;
 			if(can_frame.data[0] > 0)
 			{
-				bool result = outObj.SetOn(1);
-				response = ((result) ? can_frame.data[0] : 0x00);
+				ports.CtrlOn(PORT_1);
+				response = 0xFF;
 			}
 			else
 			{
-				outObj.SetOff(1);
+				ports.CtrlOff(PORT_1);
 				response = 0x00;
 			}
 			CANLib::obj_side_beam.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
@@ -80,12 +108,12 @@ namespace Outputs
 			uint8_t response;
 			if(can_frame.data[0] > 0)
 			{
-				bool result = outObj.SetOn(2);
-				response = ((result) ? can_frame.data[0] : 0x00);
+				ports.CtrlOn(PORT_2);
+				response = 0xFF;
 			}
 			else
 			{
-				outObj.SetOff(2);
+				ports.CtrlOff(PORT_2);
 				response = 0x00;
 			}
 			CANLib::obj_low_brake_beam.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
@@ -98,12 +126,12 @@ namespace Outputs
 			uint8_t response;
 			if(can_frame.data[0] > 0)
 			{
-				bool result = outObj.SetOn(3);
-				response = ((result) ? can_frame.data[0] : 0x00);
+				ports.CtrlOn(PORT_3);
+				response = 0xFF;
 			}
 			else
 			{
-				outObj.SetOff(3);
+				ports.CtrlOff(PORT_3);
 				response = 0x00;
 			}
 			CANLib::obj_high_reverse_beam.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
@@ -116,12 +144,12 @@ namespace Outputs
 			uint8_t response;
 			if(can_frame.data[0] > 0)
 			{
-				bool result = outObj.SetOn(4, CFG_TurnTimeOn, CFG_TurnTimeOf);
-				response = ((result) ? can_frame.data[0] : 0x00);
+				ports.CtrlOn(PORT_4, CFG_TurnTimeOn, CFG_TurnTimeOf);
+				response = 0xFF;
 			}
 			else
 			{
-				outObj.SetOff(4);
+				ports.CtrlOff(PORT_4);
 				response = 0x00;
 			}
 			CANLib::obj_left_indicator.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
@@ -134,12 +162,12 @@ namespace Outputs
 			uint8_t response;
 			if(can_frame.data[0] > 0)
 			{
-				bool result = outObj.SetOn(5, CFG_TurnTimeOn, CFG_TurnTimeOf);
-				response = ((result) ? can_frame.data[0] : 0x00);
+				ports.CtrlOn(PORT_5, CFG_TurnTimeOn, CFG_TurnTimeOf);
+				response = 0xFF;
 			}
 			else
 			{
-				outObj.SetOff(5);
+				ports.CtrlOff(PORT_5);
 				response = 0x00;
 			}
 			CANLib::obj_right_indicator.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
@@ -152,14 +180,14 @@ namespace Outputs
 			uint8_t response;
 			if(can_frame.data[0] > 0)
 			{
-				bool result1 = outObj.SetOn(4, CFG_TurnTimeOn, CFG_TurnTimeOf);
-				bool result2 = outObj.SetOn(5, CFG_TurnTimeOn, CFG_TurnTimeOf);
-				response = ((result1 && result2) ? can_frame.data[0] : 0x00);
+				ports.CtrlOn(PORT_4, CFG_TurnTimeOn, CFG_TurnTimeOf);
+				ports.CtrlOn(PORT_5, CFG_TurnTimeOn, CFG_TurnTimeOf);
+				response = 0xFF;
 			}
 			else
 			{
-				outObj.SetOff(4);
-				outObj.SetOff(5);
+				ports.CtrlOff(PORT_4);
+				ports.CtrlOff(PORT_5);
 				response = 0x00;
 			}
 			CANLib::obj_hazard_beam.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
@@ -172,12 +200,12 @@ namespace Outputs
 			uint8_t response;
 			if(can_frame.data[0] > 0)
 			{
-				bool result = outObj.SetOn(6);
-				response = ((result) ? can_frame.data[0] : 0x00);
+				ports.CtrlOn(PORT_6);
+				response = 0xFF;
 			}
 			else
 			{
-				outObj.SetOff(6);
+				ports.CtrlOff(PORT_6);
 				response = 0x00;
 			}
 			CANLib::obj_custom_beam.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
@@ -193,7 +221,7 @@ namespace Outputs
 	
 	inline void Loop(uint32_t &current_time)
 	{
-		outObj.Processing(current_time);
+		ports.Processing(current_time);
 		
 		static uint32_t last_time = 0;
 		if(current_time - last_time > 250)
@@ -201,9 +229,9 @@ namespace Outputs
 			last_time = current_time;
 
 /*
-			outObj.SetOff(test_iter++);
+			ports.CtrlOff(test_iter++);
 			if(test_iter == 9) test_iter = 1;
-			outObj.SetOn(test_iter);
+			ports.CtrlOn(test_iter);
 */
 
 /*

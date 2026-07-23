@@ -6,11 +6,14 @@
 #include "About.h"
 #include "Leds.h"
 #include "CANLogic.h"
-#include "OutputLogic.h"
 #include <Analog.h>
+#include "OutputLogic.h"
 #include "WS2812Logic.h"
 
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
+DMA_HandleTypeDef hdma_adc1;
+
 CRC_HandleTypeDef hcrc;
 FDCAN_HandleTypeDef hfdcan1;
 SD_HandleTypeDef hsd1;
@@ -22,7 +25,9 @@ void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_ADC2_Init(void);
 static void MX_CRC_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_SDMMC1_SD_Init(void);
@@ -222,7 +227,15 @@ void InitFlash()
 
 
 
-
+void GetSerialNumber(uint8_t *sn)
+{
+	const uint32_t *uid = (const uint32_t *)UID_BASE;
+	
+	uint32_t serial[2];
+	serial[0] = uid[0] ^ uid[2];
+	serial[1] = uid[1];
+	memcpy(sn, serial, sizeof(serial));
+}
 
 
 
@@ -239,7 +252,9 @@ int main(void)
 	PeriphCommonClock_Config();
 	
 	MX_GPIO_Init();
+	MX_DMA_Init();
 	MX_ADC1_Init();
+	MX_ADC2_Init();
 	MX_CRC_Init();
 	MX_FDCAN1_Init();
 	MX_SDMMC1_SD_Init();
@@ -354,18 +369,18 @@ static void MX_ADC1_Init(void)
 	ADC_MultiModeTypeDef multimode = {0};
 
 	hadc1.Instance = ADC1;
-	hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
-	hadc1.Init.Resolution = ADC_RESOLUTION_12B_OPT;
-	hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-	hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+	hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV6;
+	hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+	hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+	hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
 	hadc1.Init.LowPowerAutoWait = DISABLE;
-	hadc1.Init.ContinuousConvMode = DISABLE;
-	hadc1.Init.NbrOfConversion = 1;
+	hadc1.Init.ContinuousConvMode = ENABLE;
+	hadc1.Init.NbrOfConversion = Analog::regular_channel_count;
 	hadc1.Init.DiscontinuousConvMode = DISABLE;
 	hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
 	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-	hadc1.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
-	hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+	hadc1.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_CIRCULAR;
+	hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
 	hadc1.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
 	hadc1.Init.OversamplingMode = DISABLE;
 	hadc1.Init.Oversampling.Ratio = 1;
@@ -376,6 +391,30 @@ static void MX_ADC1_Init(void)
 	
 	multimode.Mode = ADC_MODE_INDEPENDENT;
 	if(HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	Analog::RegularConfig();
+}
+
+static void MX_ADC2_Init(void)
+{
+	hadc2.Instance = ADC2;
+	hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV6;
+	hadc2.Init.Resolution = ADC_RESOLUTION_12B;
+	hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+	hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+	hadc2.Init.LowPowerAutoWait = DISABLE;
+	hadc2.Init.ContinuousConvMode = DISABLE;
+	hadc2.Init.NbrOfConversion = 1;
+	hadc2.Init.DiscontinuousConvMode = DISABLE;
+	hadc2.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
+	hadc2.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
+	hadc2.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
+	hadc2.Init.OversamplingMode = DISABLE;
+	hadc2.Init.Oversampling.Ratio = 1;
+	if(HAL_ADC_Init(&hadc2) != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -549,6 +588,14 @@ static void MX_USART1_UART_Init(void)
 	{
 		Error_Handler();
 	}
+}
+
+static void MX_DMA_Init(void)
+{
+	__HAL_RCC_DMA1_CLK_ENABLE();
+	
+	HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
 }
 
 static void MX_GPIO_Init(void)
