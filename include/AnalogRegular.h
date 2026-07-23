@@ -6,16 +6,14 @@ extern ADC_HandleTypeDef hadc1;
 
 namespace Analog
 {
-
+	
 	// Входные АЦП порты, обрабатываемые регулярной группой
 	enum port_regular_t : uint8_t
 	{
 		PORT_REG_NONE,
 		PORT_REG1, PORT_REG2, PORT_REG3, PORT_REG4, PORT_REG5, PORT_REG6
 	};
-
-
-
+	
 	struct regular_channel_t
 	{
 		GPIO_TypeDef *port;
@@ -23,7 +21,8 @@ namespace Analog
 		uint32_t channel;
 		uint32_t rank;
 	};
-
+	
+	
 	static constexpr regular_channel_t channels[] = 
 	{
 		{GPIOA, GPIO_PIN_1, ADC_CHANNEL_17, ADC_REGULAR_RANK_1},
@@ -35,17 +34,19 @@ namespace Analog
 	};
 	static constexpr uint8_t regular_channel_count = sizeofarray(channels);
 	volatile uint16_t regular_buf[regular_channel_count];
-
+	
+	
 	const uint16_t GetRegularValue(/*port_regular_t*/ uint8_t num)
 	{
 		if(--num >= regular_channel_count) return 0;
 
 		return regular_buf[num];
 	}
-
+	
 	static void RegularConfig()
 	{
 		GPIO_InitTypeDef GPIO_InitStruct = {0};
+		GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 		
 		ADC_ChannelConfTypeDef sConfig = {0};
 		sConfig.SamplingTime = ADC_SAMPLETIME_64CYCLES_5;
@@ -57,7 +58,6 @@ namespace Analog
 		for(auto &channel : channels)
 		{
 			GPIO_InitStruct.Pin = channel.pin;
-			GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 			HAL_GPIO_Init(channel.port, &GPIO_InitStruct);
 
 			sConfig.Channel = channel.channel;
@@ -68,7 +68,7 @@ namespace Analog
 			}
 		}
 	}
-
+	
 	inline void RegularSetup()
 	{
 		HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
