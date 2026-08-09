@@ -11,6 +11,7 @@ namespace Analog
 	enum port_regular_t : uint8_t
 	{
 		PORT_REG_NONE,
+		//PORT_REG_STMTEMP,
 		PORT_REG1, PORT_REG2, PORT_REG3, PORT_REG4, PORT_REG5, PORT_REG6
 	};
 	
@@ -25,6 +26,7 @@ namespace Analog
 	
 	static constexpr regular_channel_t channels[] = 
 	{
+		//{GPIOA, 0, ADC_CHANNEL_TEMPSENSOR, ADC_REGULAR_RANK_1},
 		{GPIOA, GPIO_PIN_1, ADC_CHANNEL_17, ADC_REGULAR_RANK_1},
 		{GPIOA, GPIO_PIN_2, ADC_CHANNEL_14, ADC_REGULAR_RANK_2},
 		{GPIOA, GPIO_PIN_3, ADC_CHANNEL_15, ADC_REGULAR_RANK_3},
@@ -49,7 +51,7 @@ namespace Analog
 		GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 		
 		ADC_ChannelConfTypeDef sConfig = {0};
-		sConfig.SamplingTime = ADC_SAMPLETIME_64CYCLES_5;
+		sConfig.SamplingTime = ADC_SAMPLETIME_387CYCLES_5;
 		sConfig.SingleDiff = ADC_SINGLE_ENDED;
 		sConfig.OffsetNumber = ADC_OFFSET_NONE;
 		sConfig.Offset = 0;

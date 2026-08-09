@@ -13,7 +13,6 @@
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
 DMA_HandleTypeDef hdma_adc1;
-
 CRC_HandleTypeDef hcrc;
 FDCAN_HandleTypeDef hfdcan1;
 SD_HandleTypeDef hsd1;
