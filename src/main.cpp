@@ -5,10 +5,10 @@
 #include "SPI.h"
 #include "About.h"
 #include "Leds.h"
-#include "CANLogic.h"
 #include <Analog.h>
 #include "OutputLogic.h"
 #include "WS2812Logic.h"
+#include "CANLogic.h"
 
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
@@ -41,36 +41,29 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t itFlags)
 	
 	FDCAN_RxHeaderTypeDef RxHeader = {};
 	uint8_t RxData[8] = {};
-	
 	if( HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK )
 	{
-		CANLib::can_manager.IncomingCANFrame(RxHeader.Identifier, RxData, RxHeader.DataLength);
-		
-		//DEBUG_LOG_TOPIC("RX", "OK\n");
+		CANLib::can_manager.PushFrameToRX(RxHeader.Identifier, RxData, RxHeader.DataLength);
 	}
-
-	//DEBUG_LOG_TOPIC("RX", "id:%d, l: %d\n", RxHeader.Identifier, RxHeader.DataLength);
-	//DEBUG_LOG_ARRAY_HEX("RX", RxData, RxHeader.DataLength);
-	//DEBUG_LOG_NEW_LINE();
 	
 	return;
 }
 
 void HAL_FDCAN_ErrorCallback(FDCAN_HandleTypeDef *hfdcan)
 {
-	Leds::obj.SetOn(Leds::LED_RED, 100);
+	uint32_t code = HAL_FDCAN_GetError(hfdcan);
 	
-	DEBUG_LOG_TOPIC("CAN", "RX error event, code: 0x%08lX\n", HAL_FDCAN_GetError(hfdcan));
+	Leds::obj.SetOn(Leds::LED_RED, 100);
+	DEBUG_LOG_TOPIC("CAN", "RX error event, code: 0x%08lX\n", code);
 	
 	return;
 }
 
-void HAL_CAN_Send(uint16_t id, uint8_t *data, uint8_t length)
+bool HAL_CAN_Send(can_object_id_t id, uint8_t *data, uint8_t length)
 {
-	if(length > 8) return;
+	if(HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) == 0) return false;
 	
 	FDCAN_TxHeaderTypeDef TxHeader = {};
-	
 	TxHeader.Identifier = id;
 	TxHeader.IdType = FDCAN_STANDARD_ID;
 	TxHeader.TxFrameType = FDCAN_DATA_FRAME;
@@ -80,15 +73,11 @@ void HAL_CAN_Send(uint16_t id, uint8_t *data, uint8_t length)
 	TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
 	TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
 	TxHeader.MessageMarker = 0;
+	if(HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, data) == HAL_OK) return true;
 	
-	if(HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, data) != HAL_OK)
-	{
-		Logger.Printf("CAN ER: %d", hfdcan1.ErrorCode).PrintNewLine();
-		
-		return;
-	}
-	
-	return;
+	Leds::obj.SetOn(Leds::LED_RED, 100);
+	DEBUG_LOG_TOPIC("CAN", "TX error event, code: 0x%08lX\n", HAL_FDCAN_GetError(&hfdcan1));
+	return false;
 }
 
 
@@ -440,7 +429,7 @@ static void MX_FDCAN1_Init(void)
 	hfdcan1.Instance = FDCAN1;
 	hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
 	hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-	hfdcan1.Init.AutoRetransmission = DISABLE;
+	hfdcan1.Init.AutoRetransmission = ENABLE;
 	hfdcan1.Init.TransmitPause = DISABLE;
 	hfdcan1.Init.ProtocolException = DISABLE;
 	hfdcan1.Init.NominalPrescaler = 9;

@@ -57,6 +57,134 @@ namespace Outputs
 	}
 
 
+	enum light_t : uint8_t
+	{
+		LIGHT_NONE = 0,
+		LIGHT_SIDEBEAM,
+		LIGHT_LOW_BRAKE_BEAM,
+		LIGHT_HIGH_REVERSE_BEAM,
+		LIGHT_LEFT_INDICATOR,
+		LIGHT_RIGHT_INDICATOR,
+		LIGHT_HAZARD_BEAM,
+		LIGHT_CUSTOM_BEAM
+	};
+
+	void LightControl(light_t type, uint8_t value)
+	{
+		PowerOutBase::state_t state = (value > 0) ? PowerOutBase::STATE_ON : PowerOutBase::STATE_OFF;
+		
+		switch(type)
+		{
+			case LIGHT_SIDEBEAM:
+			{
+				ports.CtrlWrite(PORT_1, state);
+				break;
+			}
+			case LIGHT_LOW_BRAKE_BEAM:
+			{
+				ports.CtrlWrite(PORT_2, state);
+				break;
+			}
+			case LIGHT_HIGH_REVERSE_BEAM:
+			{
+				ports.CtrlWrite(PORT_3, state);
+				break;
+			}
+			case LIGHT_LEFT_INDICATOR:
+			{
+				// Добавить CtrlWrite в режиме blink
+				if(state == PowerOutBase::STATE_ON)
+					ports.CtrlOn(PORT_4, CFG_TurnTimeOn, CFG_TurnTimeOf);
+				else
+					ports.CtrlOff(PORT_4);
+				break;
+			}
+			case LIGHT_RIGHT_INDICATOR:
+			{
+				if(state == PowerOutBase::STATE_ON)
+					ports.CtrlOn(PORT_5, CFG_TurnTimeOn, CFG_TurnTimeOf);
+				else
+					ports.CtrlOff(PORT_5);
+				break;
+			}
+			case LIGHT_HAZARD_BEAM:
+			{
+				if(state == PowerOutBase::STATE_ON)
+				{
+					ports.CtrlOn(PORT_4, CFG_TurnTimeOn, CFG_TurnTimeOf);
+					ports.CtrlOn(PORT_5, CFG_TurnTimeOn, CFG_TurnTimeOf);
+				}
+				else
+				{
+					ports.CtrlOff(PORT_4);
+					ports.CtrlOff(PORT_5);
+				}
+				break;
+			}
+			case LIGHT_CUSTOM_BEAM:
+			{
+				ports.CtrlWrite(PORT_6, state);
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+
+		return;
+	}
+	
+	uint8_t LightState(light_t type)
+	{
+		PowerOutBase::state_t state;
+		
+		switch(type)
+		{
+			case LIGHT_SIDEBEAM:
+			{
+				state = ports.GetState(PORT_1);
+				break;
+			}
+			case LIGHT_LOW_BRAKE_BEAM:
+			{
+				state = ports.GetState(PORT_2);
+				break;
+			}
+			case LIGHT_HIGH_REVERSE_BEAM:
+			{
+				state = ports.GetState(PORT_3);
+				break;
+			}
+			case LIGHT_LEFT_INDICATOR:
+			{
+				state = ports.GetState(PORT_4);
+				break;
+			}
+			case LIGHT_RIGHT_INDICATOR:
+			{
+				state = ports.GetState(PORT_5);
+				break;
+			}
+			case LIGHT_HAZARD_BEAM:
+			{
+				if(ports.GetState(PORT_4) == PowerOutBase::STATE_ON && ports.GetState(PORT_5) == PowerOutBase::STATE_ON)
+					state = PowerOutBase::STATE_ON;
+				break;
+			}
+			case LIGHT_CUSTOM_BEAM:
+			{
+				state = ports.GetState(PORT_6);
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+
+		return (state == PowerOutBase::STATE_ON) ? 0xFF : 0x00;
+	}
 	
 	
 	inline void Setup()
@@ -84,134 +212,6 @@ namespace Outputs
 		//ports.CtrlOn(5, 1000, 100);
 
 		ntc_in.Init();
-
-		CANLib::obj_side_beam.RegisterFunctionSet([](can_frame_t &can_frame, can_error_t &error) -> can_result_t
-		{
-			uint8_t response;
-			if(can_frame.data[0] > 0)
-			{
-				ports.CtrlOn(PORT_1);
-				response = 0xFF;
-			}
-			else
-			{
-				ports.CtrlOff(PORT_1);
-				response = 0x00;
-			}
-			CANLib::obj_side_beam.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
-			
-			return CAN_RESULT_IGNORE;
-		});
-		
-		CANLib::obj_low_brake_beam.RegisterFunctionSet([](can_frame_t &can_frame, can_error_t &error) -> can_result_t
-		{
-			uint8_t response;
-			if(can_frame.data[0] > 0)
-			{
-				ports.CtrlOn(PORT_2);
-				response = 0xFF;
-			}
-			else
-			{
-				ports.CtrlOff(PORT_2);
-				response = 0x00;
-			}
-			CANLib::obj_low_brake_beam.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
-			
-			return CAN_RESULT_IGNORE;
-		});
-		
-		CANLib::obj_high_reverse_beam.RegisterFunctionSet([](can_frame_t &can_frame, can_error_t &error) -> can_result_t
-		{
-			uint8_t response;
-			if(can_frame.data[0] > 0)
-			{
-				ports.CtrlOn(PORT_3);
-				response = 0xFF;
-			}
-			else
-			{
-				ports.CtrlOff(PORT_3);
-				response = 0x00;
-			}
-			CANLib::obj_high_reverse_beam.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
-			
-			return CAN_RESULT_IGNORE;
-		});
-		
-		CANLib::obj_left_indicator.RegisterFunctionSet([](can_frame_t &can_frame, can_error_t &error) -> can_result_t
-		{
-			uint8_t response;
-			if(can_frame.data[0] > 0)
-			{
-				ports.CtrlOn(PORT_4, CFG_TurnTimeOn, CFG_TurnTimeOf);
-				response = 0xFF;
-			}
-			else
-			{
-				ports.CtrlOff(PORT_4);
-				response = 0x00;
-			}
-			CANLib::obj_left_indicator.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
-			
-			return CAN_RESULT_IGNORE;
-		});
-		
-		CANLib::obj_right_indicator.RegisterFunctionSet([](can_frame_t &can_frame, can_error_t &error) -> can_result_t
-		{
-			uint8_t response;
-			if(can_frame.data[0] > 0)
-			{
-				ports.CtrlOn(PORT_5, CFG_TurnTimeOn, CFG_TurnTimeOf);
-				response = 0xFF;
-			}
-			else
-			{
-				ports.CtrlOff(PORT_5);
-				response = 0x00;
-			}
-			CANLib::obj_right_indicator.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
-			
-			return CAN_RESULT_IGNORE;
-		});
-		
-		CANLib::obj_hazard_beam.RegisterFunctionSet([](can_frame_t &can_frame, can_error_t &error) -> can_result_t
-		{
-			uint8_t response;
-			if(can_frame.data[0] > 0)
-			{
-				ports.CtrlOn(PORT_4, CFG_TurnTimeOn, CFG_TurnTimeOf);
-				ports.CtrlOn(PORT_5, CFG_TurnTimeOn, CFG_TurnTimeOf);
-				response = 0xFF;
-			}
-			else
-			{
-				ports.CtrlOff(PORT_4);
-				ports.CtrlOff(PORT_5);
-				response = 0x00;
-			}
-			CANLib::obj_hazard_beam.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
-			
-			return CAN_RESULT_IGNORE;
-		});
-		
-		CANLib::obj_custom_beam.RegisterFunctionSet([](can_frame_t &can_frame, can_error_t &error) -> can_result_t
-		{
-			uint8_t response;
-			if(can_frame.data[0] > 0)
-			{
-				ports.CtrlOn(PORT_6);
-				response = 0xFF;
-			}
-			else
-			{
-				ports.CtrlOff(PORT_6);
-				response = 0x00;
-			}
-			CANLib::obj_custom_beam.SetValue(0, response, CAN_TIMER_TYPE_NONE, CAN_EVENT_TYPE_NORMAL);
-			
-			return CAN_RESULT_IGNORE;
-		});
 		
 		return;
 	}
